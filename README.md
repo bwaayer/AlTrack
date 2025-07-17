@@ -38,7 +38,7 @@ This application helps users with food allergies or sensitivities track their me
 - **Styling**: Custom CSS with responsive design
 
 ### Project Structure
-
+```
 food-tracker/
 ├── docker-compose.yml          # Container orchestration
 ├── frontend/                   # React application
