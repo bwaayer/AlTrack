@@ -270,5 +270,3 @@ For issues or questions:
 4. Ensure all containers are running
 
 **Happy tracking! 🥗📊**
-```
-
