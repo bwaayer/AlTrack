@@ -1,4 +1,3 @@
-```
 # Food & Skin Tracker
 
 A comprehensive web application for tracking food intake and allergic reactions to help identify trigger foods and monitor skin condition patterns.
@@ -39,7 +38,7 @@ This application helps users with food allergies or sensitivities track their me
 - **Styling**: Custom CSS with responsive design
 
 ### Project Structure
-```
+
 food-tracker/
 ├── docker-compose.yml          # Container orchestration
 ├── frontend/                   # React application
