@@ -87,7 +87,7 @@ export const foodApi = {
     const response = await api.get('/api/statistics');
     return response.data;
   },
-  
+
   // Mark meal as suspicious
   markMealSuspicious: async (mealId: number, reason?: string): Promise<{ message: string }> => {
     const response = await api.post(`/api/meals/${mealId}/suspicious`, { reason });
@@ -106,6 +106,4 @@ export const foodApi = {
     return response.data;
   },
 
-  // ... rest of existing methods ...
-};
 };
