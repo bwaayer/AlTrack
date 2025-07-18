@@ -40,7 +40,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://localhost:3001
+      REACT_APP_API_URL: http://192.168.30.96:3001
       WATCHPACK_POLLING: true
     depends_on:
       - backend

@@ -1,7 +1,18 @@
 import axios from 'axios';
-import { Meal, HandCondition, Statistics, FoodItem } from './types';
+import { Meal, HandCondition, Statistics, FoodItem } from './types.ts';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Dynamically determine API URL based on current host
+const getApiBaseUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  // Use current hostname with port 3001
+  const hostname = window.location.hostname;
+  return `http://${hostname}:3001`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -9,6 +20,9 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add debugging
+console.log('API Base URL:', API_BASE_URL);
 
 // Add request interceptor for debugging
 api.interceptors.request.use(request => {
