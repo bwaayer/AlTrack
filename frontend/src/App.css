@@ -874,3 +874,674 @@ body {
     width: 100%;
   }
 }
+/* Statistics Page Styles */
+.statistics {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.statistics h2 {
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* Tab Navigation */
+.stats-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #eee;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stats-tabs .tab {
+  background: none;
+  border: none;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.stats-tabs .tab:hover {
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.stats-tabs .tab.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: 600;
+}
+
+/* Stats Content */
+.stats-content {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Overview Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid #eee;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.suspicious {
+  border-left: 4px solid #ff6b6b;
+}
+
+.stat-card.warning {
+  border-left: 4px solid #ffa726;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Stats Sections */
+.stats-section {
+  margin-bottom: 3rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.stats-section h3 {
+  color: #333;
+  margin-bottom: 1.5rem;
+  font-size: 1.3rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0.5rem;
+}
+
+/* Recent Suspicious Meals */
+.suspicious-meals-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.suspicious-meal-card {
+  background: #fff8f8;
+  border: 1px solid #ffebee;
+  border-left: 4px solid #f44336;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.meal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.meal-date {
+  font-weight: bold;
+  color: #333;
+}
+
+.meal-type {
+  background: #f44336;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.meal-foods {
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+
+.meal-reason {
+  color: #333;
+  font-size: 0.9rem;
+}
+
+/* Trend Chart */
+.trend-chart {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.trend-bar {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.trend-date {
+  font-size: 0.8rem;
+  color: #666;
+  text-align: right;
+}
+
+.trend-visual {
+  background: #e9ecef;
+  height: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.trend-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.trend-value {
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+}
+
+/* Weekly Patterns */
+.weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1rem;
+}
+
+.day-card {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.day-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.day-rating {
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem auto;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.day-entries {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Monthly Summary */
+.monthly-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.month-card {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.month-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.month-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.month-stat {
+  text-align: center;
+}
+
+.month-stat .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.month-stat.suspicious .stat-value {
+  color: #f44336;
+}
+
+.month-stat .stat-label {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Food Rankings */
+.food-rankings {
+  display: grid;
+  gap: 1rem;
+}
+
+.food-rank-card {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  transition: transform 0.2s ease;
+}
+
+.food-rank-card:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.rank-number {
+  background: #007bff;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.food-info {
+  flex: 1;
+}
+
+.food-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.food-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.suspicious-count {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.risk-level {
+  font-weight: bold;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Meal Type Analysis */
+.meal-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.meal-type-card {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.meal-type-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  text-transform: capitalize;
+}
+
+.meal-type-stats {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.stat-row span:first-child {
+  color: #666;
+}
+
+.stat-row span:last-child {
+  font-weight: bold;
+}
+
+/* Food Combinations */
+.combinations-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.combination-card {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-left: 4px solid #fdcb6e;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.combination-foods {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.combination-count {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Recovery Analysis */
+.recovery-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.recovery-stat {
+  margin-bottom: 1rem;
+}
+
+.recovery-number {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.recovery-label {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.recovery-info {
+  opacity: 0.8;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Insights */
+.insights-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.insight-card {
+  display: flex;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  transition: transform 0.2s ease;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.insight-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.insight-text {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.insight-text strong {
+  color: #333;
+}
+
+/* No Data States */
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.no-data p {
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .statistics {
+    padding: 1rem;
+  }
+
+  .stats-tabs {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stats-tabs .tab {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .monthly-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .meal-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trend-bar {
+    grid-template-columns: 60px 1fr 50px;
+    gap: 0.5rem;
+  }
+
+  .food-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .meal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .insight-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .insight-icon {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-section {
+    padding: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .recovery-number {
+    font-size: 2rem;
+  }
+
+  .day-rating {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .rank-number {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Loading and Error States */
+.statistics .loading,
+.statistics .alert {
+  text-align: center;
+  padding: 3rem;
+  margin: 2rem 0;
+}
+
+.statistics .alert-error {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  color: #c53030;
+  border-radius: 8px;
+}
+
+/* Animation for stat cards */
+.stat-card {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+.stat-card:nth-child(5) { animation-delay: 0.5s; }
+.stat-card:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effects for interactive elements */
+.trend-bar:hover {
+  background: #e9ecef;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+.day-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.month-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Scrollbar styling for trend chart */
+.trend-chart::-webkit-scrollbar {
+  width: 6px;
+}
+
+.trend-chart::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.trend-chart::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.trend-chart::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

@@ -446,6 +446,196 @@ app.put('/api/meals/:id/suspicious', async (req, res) => {
   }
 });
 
+// Get statistics
+app.get('/api/statistics', async (req, res) => {
+  try {
+    console.log('Fetching comprehensive statistics...');
+
+    // Basic counts
+    const totalMealsResult = await pool.query('SELECT COUNT(*) as count FROM meals');
+    const totalConditionsResult = await pool.query('SELECT COUNT(*) as count FROM hand_conditions');
+    const suspiciousMealsResult = await pool.query('SELECT COUNT(*) as count FROM suspicious_meals');
+    const suspiciousFoodsResult = await pool.query('SELECT COUNT(*) as count FROM food_items WHERE is_suspicious = true');
+
+    // Average hand condition
+    const avgConditionResult = await pool.query('SELECT AVG(condition_rating) as avg FROM hand_conditions');
+
+    // Suspicious food rankings
+    const suspiciousFoodRankings = await pool.query(`
+      SELECT 
+        fi.name,
+        COUNT(sm.id) as suspicious_count,
+        fi.is_suspicious
+      FROM food_items fi
+      JOIN meal_items mi ON fi.id = mi.food_item_id
+      JOIN suspicious_meals sm ON mi.meal_id = sm.meal_id
+      GROUP BY fi.id, fi.name, fi.is_suspicious
+      ORDER BY suspicious_count DESC
+      LIMIT 10
+    `);
+
+    // Hand condition trends (last 30 days)
+    const conditionTrends = await pool.query(`
+      SELECT 
+        date,
+        AVG(condition_rating) as avg_rating,
+        COUNT(*) as entries_count
+      FROM hand_conditions 
+      WHERE date >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY date
+      ORDER BY date ASC
+    `);
+
+    // Meal type analysis
+    const mealTypeAnalysis = await pool.query(`
+      SELECT 
+        m.meal_type,
+        COUNT(m.id) as total_meals,
+        COUNT(sm.id) as suspicious_meals,
+        ROUND(
+          CASE 
+            WHEN COUNT(m.id) > 0 THEN (COUNT(sm.id)::float / COUNT(m.id)::float) * 100
+            ELSE 0 
+          END, 2
+        ) as suspicious_percentage
+      FROM meals m
+      LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
+      GROUP BY m.meal_type
+      ORDER BY suspicious_percentage DESC
+    `);
+
+    // Recent suspicious meals with reasons
+    const recentSuspiciousMeals = await pool.query(`
+      SELECT 
+        m.date,
+        m.meal_type,
+        sm.reason,
+        sm.marked_at,
+        json_agg(fi.name) as food_items
+      FROM meals m
+      JOIN suspicious_meals sm ON m.id = sm.meal_id
+      JOIN meal_items mi ON m.id = mi.meal_id
+      JOIN food_items fi ON mi.food_item_id = fi.id
+      GROUP BY m.id, m.date, m.meal_type, sm.reason, sm.marked_at
+      ORDER BY sm.marked_at DESC
+      LIMIT 5
+    `);
+
+    // Food combination analysis (foods that appear together in suspicious meals)
+    const foodCombinations = await pool.query(`
+      SELECT 
+        array_agg(DISTINCT fi.name ORDER BY fi.name) as food_combination,
+        COUNT(*) as suspicious_together_count
+      FROM suspicious_meals sm
+      JOIN meal_items mi ON sm.meal_id = mi.meal_id
+      JOIN food_items fi ON mi.food_item_id = fi.id
+      GROUP BY sm.meal_id
+      HAVING COUNT(DISTINCT fi.id) > 1
+      ORDER BY suspicious_together_count DESC
+      LIMIT 10
+    `);
+
+    // Weekly pattern analysis
+    const weeklyPatterns = await pool.query(`
+      SELECT 
+        EXTRACT(DOW FROM date) as day_of_week,
+        CASE EXTRACT(DOW FROM date)
+          WHEN 0 THEN 'Sunday'
+          WHEN 1 THEN 'Monday'
+          WHEN 2 THEN 'Tuesday'
+          WHEN 3 THEN 'Wednesday'
+          WHEN 4 THEN 'Thursday'
+          WHEN 5 THEN 'Friday'
+          WHEN 6 THEN 'Saturday'
+        END as day_name,
+        AVG(condition_rating) as avg_condition,
+        COUNT(*) as entries
+      FROM hand_conditions
+      WHERE date >= CURRENT_DATE - INTERVAL '60 days'
+      GROUP BY EXTRACT(DOW FROM date)
+      ORDER BY EXTRACT(DOW FROM date)
+    `);
+
+    // Recovery time analysis (time between suspicious meal and improved condition)
+    const recoveryAnalysis = await pool.query(`
+      WITH suspicious_dates AS (
+        SELECT DISTINCT m.date as suspicious_date
+        FROM meals m
+        JOIN suspicious_meals sm ON m.id = sm.meal_id
+        WHERE m.date >= CURRENT_DATE - INTERVAL '30 days'
+      ),
+      condition_improvements AS (
+        SELECT 
+          sd.suspicious_date,
+          MIN(hc.date) as first_good_day
+        FROM suspicious_dates sd
+        JOIN hand_conditions hc ON hc.date > sd.suspicious_date
+        WHERE hc.condition_rating >= 7
+        GROUP BY sd.suspicious_date
+      )
+      SELECT 
+        AVG(first_good_day - suspicious_date) as avg_recovery_days,
+        COUNT(*) as recovery_instances
+      FROM condition_improvements
+      WHERE first_good_day IS NOT NULL
+    `);
+
+    // Monthly summary
+    const monthlySummary = await pool.query(`
+      SELECT 
+        DATE_TRUNC('month', date) as month,
+        COUNT(DISTINCT m.id) as total_meals,
+        COUNT(DISTINCT sm.id) as suspicious_meals,
+        AVG(hc.condition_rating) as avg_condition
+      FROM meals m
+      LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
+      LEFT JOIN hand_conditions hc ON DATE_TRUNC('day', hc.date) = m.date
+      WHERE m.date >= CURRENT_DATE - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', date)
+      ORDER BY month DESC
+    `);
+
+    const statistics = {
+      // Basic overview
+      overview: {
+        totalMeals: parseInt(totalMealsResult.rows[0].count),
+        totalConditions: parseInt(totalConditionsResult.rows[0].count),
+        suspiciousMeals: parseInt(suspiciousMealsResult.rows[0].count),
+        suspiciousFoods: parseInt(suspiciousFoodsResult.rows[0].count),
+        avgCondition: parseFloat(avgConditionResult.rows[0].avg || 0).toFixed(1),
+        suspiciousPercentage: totalMealsResult.rows[0].count > 0 
+          ? ((suspiciousMealsResult.rows[0].count / totalMealsResult.rows[0].count) * 100).toFixed(1)
+          : 0
+      },
+
+      // Rankings and analysis
+      suspiciousFoodRankings: suspiciousFoodRankings.rows,
+      conditionTrends: conditionTrends.rows,
+      mealTypeAnalysis: mealTypeAnalysis.rows,
+      recentSuspiciousMeals: recentSuspiciousMeals.rows,
+      foodCombinations: foodCombinations.rows,
+      weeklyPatterns: weeklyPatterns.rows,
+
+      // Advanced insights
+      recoveryAnalysis: {
+        avgRecoveryDays: recoveryAnalysis.rows[0]?.avg_recovery_days 
+          ? parseFloat(recoveryAnalysis.rows[0].avg_recovery_days).toFixed(1)
+          : null,
+        recoveryInstances: parseInt(recoveryAnalysis.rows[0]?.recovery_instances || 0)
+      },
+
+      monthlySummary: monthlySummary.rows
+    };
+
+    console.log('Statistics fetched successfully');
+    res.json(statistics);
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

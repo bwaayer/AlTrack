@@ -1,381 +1,384 @@
-// frontend/src/components/Statistics.tsx
 import React, { useState, useEffect } from 'react';
 import { foodApi } from '../api.ts';
-import { Statistics as StatsType } from '../types';
+import { Statistics as StatisticsType } from '../types.ts';
 
 const Statistics: React.FC = () => {
-  const [stats, setStats] = useState<StatsType | null>(null);
+  const [statistics, setStatistics] = useState<StatisticsType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [activeChart, setActiveChart] = useState<'condition' | 'meals' | 'weekly'>('condition');
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'trends' | 'foods' | 'patterns' | 'insights'>('overview');
 
   useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setLoading(true);
+        const data = await foodApi.getStatistics();
+        setStatistics(data);
+      } catch (err) {
+        console.error('Error fetching statistics:', err);
+        setError('Failed to load statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchStatistics();
   }, []);
 
-  const fetchStatistics = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await foodApi.getStatistics();
-      setStats(data);
-    } catch (err) {
-      setError('Failed to load statistics');
-      console.error('Error fetching statistics:', err);
-    } finally {
-      setLoading(false);
-    }
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString([], { 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
-  const getConditionColor = (rating: number) => {
-    if (rating <= 3) return '#4CAF50'; // Green - Good
-    if (rating <= 6) return '#FF9800'; // Orange - Moderate
-    return '#F44336'; // Red - Poor
+  const formatMonth = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString([], { 
+      year: 'numeric', 
+      month: 'long' 
+    });
   };
 
-  const getConditionDescription = (rating: number) => {
-    if (rating <= 3) return 'Good';
-    if (rating <= 6) return 'Moderate';
-    return 'Poor';
+  const getConditionColor = (rating: number): string => {
+    if (rating <= 2) return '#f44336';
+    if (rating <= 4) return '#ff9800';
+    if (rating <= 6) return '#ffc107';
+    if (rating <= 8) return '#4caf50';
+    return '#2196f3';
   };
 
-  const renderConditionTrend = () => {
-    if (!stats?.conditionTrend || stats.conditionTrend.length === 0) {
-      return <div className="no-data">No condition data available</div>;
-    }
-
-    return (
-      <div className="chart-container">
-        <h4>Hand Condition Trend (Last 14 Days)</h4>
-        <div className="simple-chart">
-          {stats.conditionTrend.map((point, index) => (
-            <div key={index} className="chart-bar">
-              <div 
-                className="bar-fill condition-bar"
-                style={{ 
-                  height: `${(point.avg_rating / 10) * 100}%`,
-                  backgroundColor: point.avg_rating <= 3 ? '#4CAF50' : 
-                                 point.avg_rating <= 6 ? '#FF9800' : '#F44336'
-                }}
-              />
-              <div className="bar-label">
-                {new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </div>
-              <div className="bar-value">{point.avg_rating.toFixed(1)}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderMealTypeDistribution = () => {
-    if (!stats?.mealTypeDistribution || stats.mealTypeDistribution.length === 0) {
-      return <div className="no-data">No meal data available</div>;
-    }
-
-    const totalMeals = stats.mealTypeDistribution.reduce((sum, item) => sum + item.count, 0);
-
-    return (
-      <div className="chart-container">
-        <h4>Meal Type Distribution</h4>
-        <div className="pie-chart-container">
-          {stats.mealTypeDistribution.map((item, index) => {
-            const percentage = (item.count / totalMeals) * 100;
-            const suspiciousRate = item.count > 0 ? (item.suspicious_count / item.count) * 100 : 0;
-
-            return (
-              <div key={index} className="meal-type-stat">
-                <div className="meal-type-header">
-                  <span className="meal-type-name">
-                    {item.meal_type.charAt(0).toUpperCase() + item.meal_type.slice(1)}
-                  </span>
-                  <span className="meal-type-count">{item.count} meals</span>
-                </div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-                <div className="meal-type-details">
-                  <span>{percentage.toFixed(1)}% of total</span>
-                  {item.suspicious_count > 0 && (
-                    <span className="suspicious-rate">
-                      {suspiciousRate.toFixed(1)}% suspicious
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderWeeklyTrends = () => {
-    if (!stats?.weeklyTrends || stats.weeklyTrends.length === 0) {
-      return <div className="no-data">No weekly data available</div>;
-    }
-
-    return (
-      <div className="chart-container">
-        <h4>Weekly Trends (Last 4 Weeks)</h4>
-        <div className="weekly-chart">
-          {stats.weeklyTrends.map((week, index) => {
-            const suspiciousRate = week.meals_count > 0 ? (week.suspicious_count / week.meals_count) * 100 : 0;
-
-            return (
-              <div key={index} className="week-stat">
-                <div className="week-header">
-                  <span className="week-date">
-                    Week of {new Date(week.week).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-                <div className="week-metrics">
-                  <div className="metric">
-                    <span className="metric-value">{week.meals_count}</span>
-                    <span className="metric-label">Meals</span>
-                  </div>
-                  <div className="metric suspicious">
-                    <span className="metric-value">{week.suspicious_count}</span>
-                    <span className="metric-label">Suspicious</span>
-                  </div>
-                  <div className="metric rate">
-                    <span className="metric-value">{suspiciousRate.toFixed(1)}%</span>
-                    <span className="metric-label">Risk Rate</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
+  const getRiskLevel = (percentage: number): { level: string; color: string } => {
+    if (percentage >= 50) return { level: 'High Risk', color: '#f44336' };
+    if (percentage >= 25) return { level: 'Medium Risk', color: '#ff9800' };
+    if (percentage >= 10) return { level: 'Low Risk', color: '#ffc107' };
+    return { level: 'Safe', color: '#4caf50' };
   };
 
   if (loading) {
     return (
       <div className="statistics">
         <h2>Statistics</h2>
-        <div className="loading">Loading statistics...</div>
+        <div className="loading">
+          <p>Loading statistics...</p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !statistics) {
     return (
       <div className="statistics">
         <h2>Statistics</h2>
-        <div className="error">{error}</div>
-        <button onClick={fetchStatistics} className="retry-btn">
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div className="statistics">
-        <h2>Statistics</h2>
-        <div className="no-data">No statistics available</div>
+        <div className="alert alert-error">
+          {error || 'No statistics available'}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="statistics">
-      <div className="statistics-header">
-        <h2>Statistics Dashboard</h2>
+      <h2>Food Allergy Statistics</h2>
+
+      {/* Tab Navigation */}
+      <div className="stats-tabs">
         <button 
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="toggle-advanced-btn"
+          className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
         >
-          {showAdvanced ? 'Show Basic' : 'Show Advanced'}
+          Overview
+        </button>
+        <button 
+          className={`tab ${activeTab === 'trends' ? 'active' : ''}`}
+          onClick={() => setActiveTab('trends')}
+        >
+          Trends
+        </button>
+        <button 
+          className={`tab ${activeTab === 'foods' ? 'active' : ''}`}
+          onClick={() => setActiveTab('foods')}
+        >
+          Food Analysis
+        </button>
+        <button 
+          className={`tab ${activeTab === 'patterns' ? 'active' : ''}`}
+          onClick={() => setActiveTab('patterns')}
+        >
+          Patterns
+        </button>
+        <button 
+          className={`tab ${activeTab === 'insights' ? 'active' : ''}`}
+          onClick={() => setActiveTab('insights')}
+        >
+          Insights
         </button>
       </div>
 
-      {!showAdvanced ? (
-        <div className="stats-grid">
-          {/* Overview Cards */}
-          <div className="stats-section overview-cards">
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="stats-content">
+          <div className="stats-grid">
             <div className="stat-card">
-              <div className="stat-number">{stats.totalMeals}</div>
-              <div className="stat-label">Total Meals Logged</div>
+              <div className="stat-number">{statistics.overview.totalMeals}</div>
+              <div className="stat-label">Total Meals</div>
             </div>
-
+            <div className="stat-card">
+              <div className="stat-number">{statistics.overview.totalConditions}</div>
+              <div className="stat-label">Hand Condition Records</div>
+            </div>
             <div className="stat-card suspicious">
-              <div className="stat-number">{stats.suspiciousMeals}</div>
+              <div className="stat-number">{statistics.overview.suspiciousMeals}</div>
               <div className="stat-label">Suspicious Meals</div>
             </div>
-
             <div className="stat-card warning">
-              <div className="stat-number">{stats.suspiciousFoods}</div>
+              <div className="stat-number">{statistics.overview.suspiciousFoods}</div>
               <div className="stat-label">Suspicious Foods</div>
             </div>
-
-            <div className="stat-card condition">
-              <div className="stat-number" style={{ color: getConditionColor(stats.avgConditionLast7Days) }}>
-                {stats.avgConditionLast7Days.toFixed(1)}/10
-              </div>
-              <div className="stat-label">
-                Avg Hand Condition (7 days)
-                <div className="condition-description">
-                  {getConditionDescription(stats.avgConditionLast7Days)}
-                </div>
-              </div>
+            <div className="stat-card">
+              <div className="stat-number">{statistics.overview.avgCondition}</div>
+              <div className="stat-label">Avg Hand Condition</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{statistics.overview.suspiciousPercentage}%</div>
+              <div className="stat-label">Suspicious Meal Rate</div>
             </div>
           </div>
 
-          {/* Suspicious Foods List */}
+          {/* Recent Suspicious Meals */}
           <div className="stats-section">
-            <h3>Most Frequent Suspicious Foods</h3>
-            {stats.topSuspiciousFoods.length === 0 ? (
-              <div className="no-data">No suspicious foods identified yet</div>
-            ) : (
-              <div className="suspicious-foods-list">
-                {stats.topSuspiciousFoods.map((food, index) => (
-                  <div key={food.name} className="suspicious-food-item">
-                    <div className="food-rank">#{index + 1}</div>
-                    <div className="food-info">
-                      <div className="food-name">{food.name}</div>
-                      <div className="food-frequency">
-                        Consumed {food.frequency} time{food.frequency !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    <div className="frequency-bar">
-                      <div 
-                        className="frequency-fill"
-                        style={{ 
-                          width: `${(food.frequency / Math.max(...stats.topSuspiciousFoods.map(f => f.frequency))) * 100}%` 
-                        }}
-                      />
-                    </div>
+            <h3>Recent Suspicious Meals</h3>
+            <div className="suspicious-meals-list">
+              {statistics.recentSuspiciousMeals.map((meal, index) => (
+                <div key={index} className="suspicious-meal-card">
+                  <div className="meal-header">
+                    <span className="meal-date">{formatDate(meal.date)}</span>
+                    <span className="meal-type">{meal.meal_type}</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Risk Assessment */}
-          <div className="stats-section">
-            <h3>Risk Assessment</h3>
-            <div className="risk-indicators">
-              <div className="risk-item">
-                <div className="risk-label">Meal Risk Rate</div>
-                <div className="risk-value">
-                  {stats.totalMeals > 0 ? ((stats.suspiciousMeals / stats.totalMeals) * 100).toFixed(1) : 0}%
+                  <div className="meal-foods">
+                    {meal.food_items.join(', ')}
+                  </div>
+                  <div className="meal-reason">
+                    <strong>Reason:</strong> {meal.reason}
+                  </div>
                 </div>
-                <div className="risk-description">
-                  {stats.suspiciousMeals} out of {stats.totalMeals} meals marked suspicious
-                </div>
-              </div>
-
-              <div className="risk-item">
-                <div className="risk-label">Food Safety Score</div>
-                <div className="risk-value">
-                  {stats.suspiciousFoods === 0 ? '100' : Math.max(0, 100 - (stats.suspiciousFoods * 10)).toFixed(0)}%
-                </div>
-                <div className="risk-description">
-                  Based on {stats.suspiciousFoods} suspicious food{stats.suspiciousFoods !== 1 ? 's' : ''} identified
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
-
-          {/* Recommendations */}
-          <div className="stats-section">
-            <h3>Recommendations</h3>
-            <div className="recommendations">
-              {stats.avgConditionLast7Days > 6 && (
-                <div className="recommendation warning">
-                  <span className="recommendation-icon">⚠️</span>
-                  <div className="recommendation-text">
-                    Your average hand condition has been poor recently. Consider reviewing your recent meals for potential triggers.
-                  </div>
-                </div>
-              )}
-
-              {stats.suspiciousFoods > 5 && (
-                <div className="recommendation caution">
-                  <span className="recommendation-icon">🔍</span>
-                  <div className="recommendation-text">
-                    You have identified {stats.suspiciousFoods} suspicious foods. Consider keeping a more detailed food diary.
-                  </div>
-                </div>
-              )}
-
-              {stats.suspiciousMeals === 0 && stats.totalMeals > 10 && (
-                <div className="recommendation positive">
-                  <span className="recommendation-icon">✅</span>
-                  <div className="recommendation-text">
-                    Great job! No suspicious meals identified yet. Keep monitoring your reactions.
-                  </div>
-                </div>
-              )}
-
-              {stats.totalMeals < 5 && (
-                <div className="recommendation info">
-                  <span className="recommendation-icon">📝</span>
-                  <div className="recommendation-text">
-                    Log more meals to get better insights and identify patterns in your food reactions.
-                  </div>
-                </div>
-              )}
-
-              {stats.avgConditionLast7Days <= 3 && (
-                <div className="recommendation positive">
-                  <span className="recommendation-icon">🎉</span>
-                  <div className="recommendation-text">
-                    Excellent! Your hand condition has been good recently. Keep up whatever you're doing!
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="advanced-statistics">
-          <div className="chart-tabs">
-            <button 
-              className={`chart-tab ${activeChart === 'condition' ? 'active' : ''}`}
-              onClick={() => setActiveChart('condition')}
-            >
-              Condition Trend
-            </button>
-            <button 
-              className={`chart-tab ${activeChart === 'meals' ? 'active' : ''}`}
-              onClick={() => setActiveChart('meals')}
-            >
-              Meal Types
-            </button>
-            <button 
-              className={`chart-tab ${activeChart === 'weekly' ? 'active' : ''}`}
-              onClick={() => setActiveChart('weekly')}
-            >
-              Weekly Trends
-            </button>
-          </div>
-
-          <div className="chart-content">
-            {activeChart === 'condition' && renderConditionTrend()}
-            {activeChart === 'meals' && renderMealTypeDistribution()}
-            {activeChart === 'weekly' && renderWeeklyTrends()}
           </div>
         </div>
       )}
 
-      <div className="refresh-section">
-        <button onClick={fetchStatistics} className="refresh-btn">
-          Refresh Statistics
-        </button>
-        <div className="last-updated">
-          Last updated: {new Date().toLocaleString()}
+      {/* Trends Tab */}
+      {activeTab === 'trends' && (
+        <div className="stats-content">
+          <div className="stats-section">
+            <h3>Hand Condition Trends (Last 30 Days)</h3>
+            <div className="trend-chart">
+              {statistics.conditionTrends.map((trend, index) => (
+                <div key={index} className="trend-bar">
+                  <div className="trend-date">{formatDate(trend.date)}</div>
+                  <div className="trend-visual">
+                    <div 
+                      className="trend-fill"
+                      style={{ 
+                        width: `${(trend.avg_rating / 10) * 100}%`,
+                        backgroundColor: getConditionColor(trend.avg_rating)
+                      }}
+                    ></div>
+                  </div>
+                  <div className="trend-value">{trend.avg_rating.toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="stats-section">
+            <h3>Weekly Patterns</h3>
+            <div className="weekly-grid">
+              {statistics.weeklyPatterns.map((pattern, index) => (
+                <div key={index} className="day-card">
+                  <div className="day-name">{pattern.day_name}</div>
+                  <div 
+                    className="day-rating"
+                    style={{ backgroundColor: getConditionColor(pattern.avg_condition) }}
+                  >
+                    {pattern.avg_condition.toFixed(1)}
+                  </div>
+                  <div className="day-entries">{pattern.entries} entries</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="stats-section">
+            <h3>Monthly Summary</h3>
+            <div className="monthly-summary">
+              {statistics.monthlySummary.map((month, index) => (
+                <div key={index} className="month-card">
+                  <div className="month-name">{formatMonth(month.month)}</div>
+                  <div className="month-stats">
+                    <div className="month-stat">
+                      <span className="stat-value">{month.total_meals}</span>
+                      <span className="stat-label">Meals</span>
+                    </div>
+                    <div className="month-stat suspicious">
+                      <span className="stat-value">{month.suspicious_meals}</span>
+                      <span className="stat-label">Suspicious</span>
+                    </div>
+                    <div className="month-stat">
+                      <span className="stat-value">{month.avg_condition?.toFixed(1) || 'N/A'}</span>
+                      <span className="stat-label">Avg Condition</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Food Analysis Tab */}
+      {activeTab === 'foods' && (
+        <div className="stats-content">
+          <div className="stats-section">
+            <h3>Most Suspicious Foods</h3>
+            <div className="food-rankings">
+              {statistics.suspiciousFoodRankings.map((food, index) => {
+                const riskInfo = getRiskLevel((food.suspicious_count / statistics.overview.suspiciousMeals) * 100);
+                return (
+                  <div key={index} className="food-rank-card">
+                    <div className="rank-number">#{index + 1}</div>
+                    <div className="food-info">
+                      <div className="food-name">{food.name}</div>
+                      <div className="food-stats">
+                        <span className="suspicious-count">{food.suspicious_count} suspicious meals</span>
+                        <span 
+                          className="risk-level"
+                          style={{ color: riskInfo.color }}
+                        >
+                          {riskInfo.level}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="stats-section">
+            <h3>Meal Type Analysis</h3>
+            <div className="meal-type-grid">
+              {statistics.mealTypeAnalysis.map((mealType, index) => (
+                <div key={index} className="meal-type-card">
+                  <div className="meal-type-name">{mealType.meal_type}</div>
+                  <div className="meal-type-stats">
+                    <div className="stat-row">
+                      <span>Total Meals:</span>
+                      <span>{mealType.total_meals}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span>Suspicious:</span>
+                      <span>{mealType.suspicious_meals}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span>Risk Rate:</span>
+                      <span style={{ 
+                        color: getRiskLevel(mealType.suspicious_percentage).color,
+                        fontWeight: 'bold'
+                      }}>
+                        {mealType.suspicious_percentage}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Patterns Tab */}
+      {activeTab === 'patterns' && (
+        <div className="stats-content">
+          <div className="stats-section">
+            <h3>Suspicious Food Combinations</h3>
+            <div className="combinations-list">
+              {statistics.foodCombinations.map((combo, index) => (
+                <div key={index} className="combination-card">
+                  <div className="combination-foods">
+                    {combo.food_combination.join(' + ')}
+                  </div>
+                  <div className="combination-count">
+                    Appeared together in {combo.suspicious_together_count} suspicious meals
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Insights Tab */}
+      {activeTab === 'insights' && (
+        <div className="stats-content">
+          <div className="stats-section">
+            <h3>Recovery Analysis</h3>
+            <div className="recovery-card">
+              {statistics.recoveryAnalysis.avgRecoveryDays ? (
+                <>
+                  <div className="recovery-stat">
+                    <div className="recovery-number">{statistics.recoveryAnalysis.avgRecoveryDays}</div>
+                    <div className="recovery-label">Average Recovery Days</div>
+                  </div>
+                  <div className="recovery-info">
+                    Based on {statistics.recoveryAnalysis.recoveryInstances} recovery instances where hand condition improved to 7+ after suspicious meals.
+                  </div>
+                </>
+              ) : (
+                <div className="no-data">
+                  <p>Not enough data for recovery analysis.</p>
+                  <p>Keep tracking to see how long it takes to recover from suspicious meals!</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="stats-section">
+            <h3>Key Insights</h3>
+            <div className="insights-list">
+              <div className="insight-card">
+                <div className="insight-icon">🍽️</div>
+                <div className="insight-text">
+                  <strong>Meal Risk:</strong> {statistics.mealTypeAnalysis[0]?.meal_type || 'N/A'} meals have the highest suspicious rate at {statistics.mealTypeAnalysis[0]?.suspicious_percentage || 0}%
+                </div>
+              </div>
+
+              <div className="insight-card">
+                <div className="insight-icon">⚠️</div>
+                <div className="insight-text">
+                  <strong>Top Trigger:</strong> {statistics.suspiciousFoodRankings[0]?.name || 'No data'} appears in {statistics.suspiciousFoodRankings[0]?.suspicious_count || 0} suspicious meals
+                </div>
+              </div>
+
+              <div className="insight-card">
+                <div className="insight-icon">📊</div>
+                <div className="insight-text">
+                  <strong>Overall Trend:</strong> {parseFloat(statistics.overview.avgCondition) >= 7 ? 'Your hand condition is generally good!' : 'Consider reviewing your diet for potential triggers.'}
+                </div>
+              </div>
+
+              {statistics.recoveryAnalysis.avgRecoveryDays && (
+                <div className="insight-card">
+                  <div className="insight-icon">⏰</div>
+                  <div className="insight-text">
+                    <strong>Recovery Time:</strong> It typically takes {statistics.recoveryAnalysis.avgRecoveryDays} days for your condition to improve after suspicious meals
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
