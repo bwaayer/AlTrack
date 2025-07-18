@@ -122,13 +122,17 @@ const History: React.FC = () => {
   };
 
   const renderMealEntry = (meal: Meal) => (
-    <div className="history-entry meal-entry">
-      <div className="entry-header">
-        <div className="entry-type">
-          <span className="meal-type-badge">{meal.meal_type}</span>
-          <span className="entry-date">{formatDate(meal.date)}</span>
-        </div>
-        <div className="entry-actions">
+  <div className={`history-entry meal-entry ${meal.is_suspicious ? 'suspicious-meal' : ''}`}>
+    <div className="entry-header">
+      <div className="entry-type">
+        <span className="meal-type-badge">{meal.meal_type}</span>
+        <span className="entry-date">{formatDate(meal.date)}</span>
+        {meal.is_suspicious && (
+          <span className="suspicious-badge">⚠️ Suspicious</span>
+        )}
+      </div>
+      <div className="entry-actions">
+        {!meal.is_suspicious && (
           <button
             className="btn btn-sm btn-warning"
             onClick={() => meal.id && markMealSuspicious(meal.id)}
@@ -136,26 +140,35 @@ const History: React.FC = () => {
           >
             Mark Suspicious
           </button>
-        </div>
+        )}
       </div>
-
-      <div className="meal-items">
-        {meal.items && meal.items.map((item, index) => (
-          <div key={index} className="meal-item">
-            <span className="item-name">{item.name}</span>
-            {item.quantity && <span className="item-quantity">({item.quantity})</span>}
-            {item.notes && <span className="item-notes">- {item.notes}</span>}
-          </div>
-        ))}
-      </div>
-
-      {meal.notes && (
-        <div className="meal-notes">
-          <strong>Notes:</strong> {meal.notes}
-        </div>
-      )}
     </div>
-  );
+
+    <div className="meal-items">
+      {meal.items && meal.items.map((item, index) => (
+        <div key={index} className={`meal-item ${item.is_suspicious ? 'suspicious-item' : ''}`}>
+          <span className="item-name">{item.name}</span>
+          {item.quantity && <span className="item-quantity">({item.quantity})</span>}
+          {item.notes && <span className="item-notes">- {item.notes}</span>}
+          {item.is_suspicious && <span className="suspicious-indicator">⚠️</span>}
+        </div>
+      ))}
+    </div>
+
+    {meal.notes && (
+      <div className="meal-notes">
+        <strong>Notes:</strong> {meal.notes}
+      </div>
+    )}
+
+    {meal.is_suspicious && meal.suspicious_reason && (
+      <div className="suspicious-reason">
+        <strong>Suspicious Reason:</strong> {meal.suspicious_reason}
+      </div>
+    )}
+  </div>
+);
+
 
   const renderConditionEntry = (condition: HandCondition) => (
     <div className="history-entry condition-entry">

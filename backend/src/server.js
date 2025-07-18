@@ -80,7 +80,8 @@ app.get('/api/meals', async (req, res) => {
         m.date,
         m.meal_type,
         m.notes,
-        COALESCE(sm.id IS NOT NULL, false) as is_suspicious,
+        m.created_at,
+        CASE WHEN sm.meal_id IS NOT NULL THEN true ELSE false END as is_suspicious,
         sm.reason as suspicious_reason,
         json_agg(
           json_build_object(
@@ -96,22 +97,31 @@ app.get('/api/meals', async (req, res) => {
       LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
     `;
 
-    const params = [];
+    let params = [];
 
     if (startDate && endDate) {
-      query += ` WHERE m.date >= $1 AND m.date <= $2`;
-      params.push(startDate, endDate);
+      query += ' WHERE m.date BETWEEN $1 AND $2';
+      params = [startDate, endDate];
+    } else if (startDate) {
+      query += ' WHERE m.date >= $1';
+      params = [startDate];
+    } else if (endDate) {
+      query += ' WHERE m.date <= $1';
+      params = [endDate];
     }
 
-    query += ` GROUP BY m.id, m.date, m.meal_type, m.notes, sm.id, sm.reason ORDER BY m.date DESC, m.meal_type`;
+    query += ' GROUP BY m.id, m.date, m.meal_type, m.notes, m.created_at, sm.meal_id, sm.reason ORDER BY m.date DESC, m.created_at DESC';
+
+    console.log('Getting meals:', { startDate, endDate });
 
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching meals:', error);
-    res.status(500).json({ error: 'Failed to fetch meals' });
+    console.error('Error getting meals:', error);
+    res.status(500).json({ error: 'Failed to get meals' });
   }
 });
+
 
 // Add meal
 app.post('/api/meals', async (req, res) => {
@@ -186,32 +196,61 @@ app.post('/api/meals', async (req, res) => {
 
 // Mark meal as suspicious
 app.post('/api/meals/:id/suspicious', async (req, res) => {
+  const client = await pool.connect();
+
   try {
-    const { id } = req.params;
+    const mealId = parseInt(req.params.id);
     const { reason } = req.body;
 
-    await pool.query(
-      'INSERT INTO suspicious_meals (meal_id, reason) VALUES ($1, $2) ON CONFLICT (meal_id) DO UPDATE SET reason = EXCLUDED.reason',
-      [id, reason || 'Suspected allergic reaction']
+    console.log('Marking meal as suspicious:', { mealId, reason });
+
+    // Validate meal exists
+    const mealCheck = await client.query('SELECT id FROM meals WHERE id = $1', [mealId]);
+    if (mealCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Meal not found' });
+    }
+
+    await client.query('BEGIN');
+
+    // Insert or update suspicious meal record
+    await client.query(
+      `INSERT INTO suspicious_meals (meal_id, reason) 
+       VALUES ($1, $2) 
+       ON CONFLICT (meal_id) DO UPDATE SET 
+         reason = EXCLUDED.reason,
+         created_at = CURRENT_TIMESTAMP`,
+      [mealId, reason || 'Marked as suspicious']
     );
 
-    // Mark associated food items as suspicious
-    await pool.query(`
-      UPDATE food_items 
-      SET is_suspicious = true 
-      WHERE id IN (
-        SELECT food_item_id 
-        FROM meal_items 
-        WHERE meal_id = $1
-      )
-    `, [id]);
+    // Update all food items from this meal to be suspicious
+    await client.query(
+      `UPDATE food_items 
+       SET is_suspicious = true 
+       WHERE id IN (
+         SELECT food_item_id 
+         FROM meal_items 
+         WHERE meal_id = $1
+       )`,
+      [mealId]
+    );
 
-    res.json({ message: 'Meal marked as suspicious' });
+    await client.query('COMMIT');
+
+    console.log('Meal marked as suspicious successfully');
+    res.json({ message: 'Meal marked as suspicious successfully' });
   } catch (error) {
-    console.error('Error marking meal as suspicious:', error);
-    res.status(500).json({ error: 'Failed to mark meal as suspicious' });
+    await client.query('ROLLBACK');
+    console.error('Error marking meal as suspicious:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      error: 'Failed to mark meal as suspicious', 
+      details: error.message 
+    });
+  } finally {
+    client.release();
   }
 });
+
 
 // Get hand conditions
 app.get('/api/hand-conditions', async (req, res) => {
@@ -301,96 +340,6 @@ app.post('/api/hand-conditions', async (req, res) => {
       error: 'Failed to record hand condition', 
       details: error.message 
     });
-  }
-});
-
-
-// Get statistics
-app.get('/api/statistics', async (req, res) => {
-  try {
-    // Total meals
-    const totalMealsResult = await pool.query('SELECT COUNT(*) as count FROM meals');
-    const totalMeals = parseInt(totalMealsResult.rows[0].count);
-
-    // Suspicious meals
-    const suspiciousMealsResult = await pool.query('SELECT COUNT(*) as count FROM suspicious_meals');
-    const suspiciousMeals = parseInt(suspiciousMealsResult.rows[0].count);
-
-    // Suspicious foods
-    const suspiciousFoodsResult = await pool.query('SELECT COUNT(*) as count FROM food_items WHERE is_suspicious = true');
-    const suspiciousFoods = parseInt(suspiciousFoodsResult.rows[0].count);
-
-    // Average condition last 7 days
-    const avgConditionResult = await pool.query(`
-      SELECT AVG(rating) as avg_rating 
-      FROM hand_conditions 
-      WHERE date >= CURRENT_DATE - INTERVAL '7 days'
-    `);
-    const avgConditionLast7Days = parseFloat(avgConditionResult.rows[0].avg_rating) || 0;
-
-    // Top suspicious foods
-    const topSuspiciousFoodsResult = await pool.query(`
-      SELECT fi.name, COUNT(mi.id) as frequency
-      FROM food_items fi
-      JOIN meal_items mi ON fi.id = mi.food_item_id
-      JOIN suspicious_meals sm ON mi.meal_id = sm.meal_id
-      WHERE fi.is_suspicious = true
-      GROUP BY fi.name
-      ORDER BY frequency DESC
-      LIMIT 10
-    `);
-
-    // Condition trend (last 14 days)
-    const conditionTrendResult = await pool.query(`
-      SELECT 
-        date,
-        AVG(rating) as avg_rating
-      FROM hand_conditions
-      WHERE date >= CURRENT_DATE - INTERVAL '14 days'
-      GROUP BY date
-      ORDER BY date ASC
-    `);
-
-    // Meal type distribution
-    const mealTypeResult = await pool.query(`
-      SELECT 
-        m.meal_type,
-        COUNT(m.id) as count,
-        COUNT(sm.id) as suspicious_count
-      FROM meals m
-      LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
-      GROUP BY m.meal_type
-      ORDER BY count DESC
-    `);
-
-    // Weekly trends (last 4 weeks)
-    const weeklyTrendsResult = await pool.query(`
-      SELECT 
-        DATE_TRUNC('week', m.date) as week,
-        COUNT(m.id) as meals_count,
-        COUNT(sm.id) as suspicious_count
-      FROM meals m
-      LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
-      WHERE m.date >= CURRENT_DATE - INTERVAL '4 weeks'
-      GROUP BY DATE_TRUNC('week', m.date)
-      ORDER BY week ASC
-    `);
-
-    const statistics = {
-      totalMeals,
-      suspiciousMeals,
-      suspiciousFoods,
-      avgConditionLast7Days,
-      topSuspiciousFoods: topSuspiciousFoodsResult.rows,
-      conditionTrend: conditionTrendResult.rows,
-      mealTypeDistribution: mealTypeResult.rows,
-      weeklyTrends: weeklyTrendsResult.rows
-    };
-
-    res.json(statistics);
-  } catch (error) {
-    console.error('Error fetching statistics:', error);
-    res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
 

@@ -15,11 +15,13 @@ export interface Meal {
   id?: number;
   date: string;
   meal_type: string;
-  items: MealItem[];
+  items?: MealItem[];
   notes?: string;
+  created_at?: string;
   is_suspicious?: boolean;
   suspicious_reason?: string;
 }
+
 
 export interface HandCondition {
   id?: number;
