@@ -1,4 +1,3 @@
-// frontend/src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import MealEntry from './components/MealEntry';
@@ -7,16 +6,16 @@ import History from './components/History';
 import Statistics from './components/Statistics';
 import './App.css';
 
-function App() {
+const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
         <nav className="navbar">
           <div className="nav-container">
-            <h1 className="nav-title">Food & Skin Tracker</h1>
+            <h1 className="nav-title">AlTrack</h1>
             <div className="nav-links">
               <Link to="/" className="nav-link">Add Meal</Link>
-              <Link to="/hand-condition" className="nav-link">Hand Condition</Link>
+              <Link to="/condition" className="nav-link">Hand Condition</Link>
               <Link to="/history" className="nav-link">History</Link>
               <Link to="/statistics" className="nav-link">Statistics</Link>
             </div>
@@ -26,7 +25,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<MealEntry />} />
-            <Route path="/hand-condition" element={<HandConditionEntry />} />
+            <Route path="/condition" element={<HandConditionEntry />} />
             <Route path="/history" element={<History />} />
             <Route path="/statistics" element={<Statistics />} />
           </Routes>
@@ -34,6 +33,6 @@ function App() {
       </div>
     </Router>
   );
-}
+};
 
 export default App;
