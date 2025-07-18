@@ -14,6 +14,8 @@ const History: React.FC = () => {
     date.setDate(date.getDate() - 7); // Default to last 7 days
     return date.toISOString().split('T')[0];
   });
+  
+  const [editingReason, setEditingReason] = useState<{ mealId: number; reason: string } | null>(null);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [handConditions, setHandConditions] = useState<HandCondition[]>([]);
@@ -46,17 +48,45 @@ const History: React.FC = () => {
     }
   };
 
-  const markMealSuspicious = async (mealId: number) => {
+  const markMealSuspicious = async (mealId: number, reason?: string) => {
     try {
-      await foodApi.markMealSuspicious(mealId, 'Marked as suspicious from history');
-      // Refresh data to show updated status
-      fetchData();
+      await foodApi.markMealSuspicious(mealId, reason || 'Marked as suspicious from history');
+      fetchData(); // Refresh data
     } catch (err) {
       console.error('Error marking meal as suspicious:', err);
       setError('Failed to mark meal as suspicious');
     }
   };
 
+  const unmarkMealSuspicious = async (mealId: number) => {
+    try {
+      await foodApi.unmarkMealSuspicious(mealId);
+      fetchData(); // Refresh data
+    } catch (err) {
+      console.error('Error unmarking meal as suspicious:', err);
+      setError('Failed to unmark meal as suspicious');
+    }
+  };
+
+  const updateSuspiciousReason = async (mealId: number, newReason: string) => {
+    try {
+      await foodApi.updateSuspiciousReason(mealId, newReason);
+      setEditingReason(null);
+      fetchData(); // Refresh data
+    } catch (err) {
+      console.error('Error updating suspicious reason:', err);
+      setError('Failed to update suspicious reason');
+    }
+  };
+
+  const startEditingReason = (mealId: number, currentReason: string) => {
+    setEditingReason({ mealId, reason: currentReason });
+  };
+
+  const cancelEditingReason = () => {
+    setEditingReason(null);
+  };
+  
   // Combine and sort all entries by datetime
   const getCombinedHistory = (): HistoryEntry[] => {
     const entries: HistoryEntry[] = [];
@@ -122,52 +152,69 @@ const History: React.FC = () => {
   };
 
   const renderMealEntry = (meal: Meal) => (
-  <div className={`history-entry meal-entry ${meal.is_suspicious ? 'suspicious-meal' : ''}`}>
-    <div className="entry-header">
-      <div className="entry-type">
-        <span className="meal-type-badge">{meal.meal_type}</span>
-        <span className="entry-date">{formatDate(meal.date)}</span>
-        {meal.is_suspicious && (
-          <span className="suspicious-badge">⚠️ Suspicious</span>
-        )}
-      </div>
-      <div className="entry-actions">
-        {!meal.is_suspicious && (
-          <button
-            className="btn btn-sm btn-warning"
-            onClick={() => meal.id && markMealSuspicious(meal.id)}
-            disabled={!meal.id}
-          >
-            Mark Suspicious
-          </button>
-        )}
-      </div>
-    </div>
-
-    <div className="meal-items">
-      {meal.items && meal.items.map((item, index) => (
-        <div key={index} className={`meal-item ${item.is_suspicious ? 'suspicious-item' : ''}`}>
-          <span className="item-name">{item.name}</span>
-          {item.quantity && <span className="item-quantity">({item.quantity})</span>}
-          {item.notes && <span className="item-notes">- {item.notes}</span>}
-          {item.is_suspicious && <span className="suspicious-indicator">⚠️</span>}
+    <div className={`history-entry meal-entry ${meal.is_suspicious ? 'suspicious-meal' : ''}`}>
+      <div className="entry-header">
+        <div className="entry-type">
+          <span className="meal-type-badge">{meal.meal_type}</span>
+          <span className="entry-date">{formatDate(meal.date)}</span>
+          {meal.is_suspicious && (
+            <span className="suspicious-badge">⚠️ Suspicious</span>
+          )}
         </div>
-      ))}
+        <div className="entry-actions">
+          {meal.is_suspicious ? (
+            <div className="suspicious-actions">
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => startEditingReason(meal.id!, meal.suspicious_reason || '')}
+                disabled={!meal.id}
+              >
+                Edit Reason
+              </button>
+              <button
+                className="btn btn-sm btn-success"
+                onClick={() => meal.id && unmarkMealSuspicious(meal.id)}
+                disabled={!meal.id}
+              >
+                Unmark Suspicious
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn btn-sm btn-warning"
+              onClick={() => meal.id && markMealSuspicious(meal.id)}
+              disabled={!meal.id}
+            >
+              Mark Suspicious
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="meal-items">
+        {meal.items && meal.items.map((item, index) => (
+          <div key={index} className={`meal-item ${item.is_suspicious ? 'suspicious-item' : ''}`}>
+            <span className="item-name">{item.name}</span>
+            {item.quantity && <span className="item-quantity">({item.quantity})</span>}
+            {item.notes && <span className="item-notes">- {item.notes}</span>}
+            {item.is_suspicious && <span className="suspicious-indicator">⚠️</span>}
+          </div>
+        ))}
+      </div>
+
+      {meal.notes && (
+        <div className="meal-notes">
+          <strong>Notes:</strong> {meal.notes}
+        </div>
+      )}
+
+      {meal.is_suspicious && meal.suspicious_reason && (
+        <div className="suspicious-reason">
+          <strong>Suspicious Reason:</strong> {meal.suspicious_reason}
+        </div>
+      )}
     </div>
-
-    {meal.notes && (
-      <div className="meal-notes">
-        <strong>Notes:</strong> {meal.notes}
-      </div>
-    )}
-
-    {meal.is_suspicious && meal.suspicious_reason && (
-      <div className="suspicious-reason">
-        <strong>Suspicious Reason:</strong> {meal.suspicious_reason}
-      </div>
-    )}
-  </div>
-);
+  );
 
 
   const renderConditionEntry = (condition: HandCondition) => (
@@ -315,6 +362,47 @@ const History: React.FC = () => {
                 }
               </span>
               <span className="stat-label">Avg Condition</span>
+            </div>
+          </div>
+        </div>
+      )}
+    {editingReason && (
+        <div className="modal-overlay" onClick={cancelEditingReason}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Suspicious Reason</h3>
+              <button className="modal-close" onClick={cancelEditingReason}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="suspiciousReason">Reason</label>
+                <textarea
+                  id="suspiciousReason"
+                  className="form-control"
+                  rows={4}
+                  value={editingReason.reason}
+                  onChange={(e) => setEditingReason({
+                    ...editingReason,
+                    reason: e.target.value
+                  })}
+                  placeholder="Describe why this meal is suspicious..."
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={cancelEditingReason}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => updateSuspiciousReason(editingReason.mealId, editingReason.reason)}
+                disabled={!editingReason.reason.trim()}
+              >
+                Update Reason
+              </button>
             </div>
           </div>
         </div>

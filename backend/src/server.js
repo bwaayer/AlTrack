@@ -357,3 +357,99 @@ app.use('*', (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`AlTrack API server running on port ${port}`);
 });
+// Unmark meal as suspicious
+app.delete('/api/meals/:id/suspicious', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const mealId = parseInt(req.params.id);
+
+    console.log('Unmarking meal as suspicious:', { mealId });
+
+    // Validate meal exists
+    const mealCheck = await client.query('SELECT id FROM meals WHERE id = $1', [mealId]);
+    if (mealCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Meal not found' });
+    }
+
+    await client.query('BEGIN');
+
+    // Remove from suspicious_meals table
+    const deleteResult = await client.query(
+      'DELETE FROM suspicious_meals WHERE meal_id = $1',
+      [mealId]
+    );
+
+    if (deleteResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Meal was not marked as suspicious' });
+    }
+
+    // Update food items to not be suspicious (only if they're not suspicious from other meals)
+    await client.query(
+      `UPDATE food_items 
+       SET is_suspicious = false 
+       WHERE id IN (
+         SELECT food_item_id 
+         FROM meal_items 
+         WHERE meal_id = $1
+       )
+       AND id NOT IN (
+         SELECT DISTINCT mi.food_item_id 
+         FROM meal_items mi 
+         JOIN suspicious_meals sm ON mi.meal_id = sm.meal_id 
+         WHERE mi.meal_id != $1
+       )`,
+      [mealId]
+    );
+
+    await client.query('COMMIT');
+
+    console.log('Meal unmarked as suspicious successfully');
+    res.json({ message: 'Meal unmarked as suspicious successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error unmarking meal as suspicious:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      error: 'Failed to unmark meal as suspicious', 
+      details: error.message 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Update suspicious meal reason
+app.put('/api/meals/:id/suspicious', async (req, res) => {
+  try {
+    const mealId = parseInt(req.params.id);
+    const { reason } = req.body;
+
+    console.log('Updating suspicious meal reason:', { mealId, reason });
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ error: 'Reason is required' });
+    }
+
+    // Update the reason
+    const result = await pool.query(
+      'UPDATE suspicious_meals SET reason = $1 WHERE meal_id = $2',
+      [reason.trim(), mealId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Suspicious meal not found' });
+    }
+
+    console.log('Suspicious meal reason updated successfully');
+    res.json({ message: 'Suspicious meal reason updated successfully' });
+  } catch (error) {
+    console.error('Error updating suspicious meal reason:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update suspicious meal reason', 
+      details: error.message 
+    });
+  }
+});
