@@ -357,9 +357,6 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`AlTrack API server running on port ${port}`);
-});
 // Unmark meal as suspicious
 app.delete('/api/meals/:id/suspicious', async (req, res) => {
   const client = await pool.connect();
@@ -457,4 +454,9 @@ app.put('/api/meals/:id/suspicious', async (req, res) => {
     });
   }
 });
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`AlTrack API server running on port ${port}`);
+});
+
 
