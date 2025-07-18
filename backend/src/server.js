@@ -437,11 +437,12 @@ app.put('/api/meals/:id/suspicious', async (req, res) => {
 
     // Update the reason
     const result = await pool.query(
-      'UPDATE suspicious_meals SET reason = $1 WHERE meal_id = $2',
+      'UPDATE suspicious_meals SET reason = $1, marked_at = CURRENT_TIMESTAMP WHERE meal_id = $2',
       [reason.trim(), mealId]
     );
 
     if (result.rowCount === 0) {
+      console.log('No suspicious meal found for meal_id:', mealId);
       return res.status(404).json({ error: 'Suspicious meal not found' });
     }
 
@@ -456,3 +457,4 @@ app.put('/api/meals/:id/suspicious', async (req, res) => {
     });
   }
 });
+
