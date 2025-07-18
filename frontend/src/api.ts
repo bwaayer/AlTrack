@@ -64,11 +64,6 @@ export const foodApi = {
     return response.data;
   },
 
-  markMealSuspicious: async (mealId: number, reason?: string): Promise<{ message: string }> => {
-    const response = await api.post(`/api/meals/${mealId}/suspicious`, { reason });
-    return response.data;
-  },
-
   // Hand conditions
   getHandConditions: async (startDate?: string, endDate?: string): Promise<HandCondition[]> => {
     const response = await api.get('/api/hand-conditions', {
@@ -105,5 +100,4 @@ export const foodApi = {
     const response = await api.put(`/api/meals/${mealId}/suspicious`, { reason });
     return response.data;
   },
-
 };

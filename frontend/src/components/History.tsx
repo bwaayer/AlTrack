@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { foodApi } from '../api.ts';
 import { Meal, HandCondition } from '../types.ts';
 
@@ -14,21 +14,16 @@ const History: React.FC = () => {
     date.setDate(date.getDate() - 7); // Default to last 7 days
     return date.toISOString().split('T')[0];
   });
-  
-  const [editingReason, setEditingReason] = useState<{ mealId: number; reason: string } | null>(null);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [handConditions, setHandConditions] = useState<HandCondition[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'meals' | 'conditions'>('all');
+  const [editingReason, setEditingReason] = useState<{ mealId: number; reason: string } | null>(null);
 
-  // Load data when component mounts or date range changes
-  useEffect(() => {
-    fetchData();
-  }, [startDate, endDate]);
-
-  const fetchData = async () => {
+  // Fetch data function with useCallback to prevent infinite re-renders
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -46,7 +41,12 @@ const History: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
+
+  // Load data when component mounts or date range changes
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const markMealSuspicious = async (mealId: number, reason?: string) => {
     try {
@@ -86,7 +86,7 @@ const History: React.FC = () => {
   const cancelEditingReason = () => {
     setEditingReason(null);
   };
-  
+
   // Combine and sort all entries by datetime
   const getCombinedHistory = (): HistoryEntry[] => {
     const entries: HistoryEntry[] = [];
@@ -215,7 +215,6 @@ const History: React.FC = () => {
       )}
     </div>
   );
-
 
   const renderConditionEntry = (condition: HandCondition) => (
     <div className="history-entry condition-entry">
@@ -366,7 +365,9 @@ const History: React.FC = () => {
           </div>
         </div>
       )}
-    {editingReason && (
+
+      {/* Edit Reason Modal */}
+      {editingReason && (
         <div className="modal-overlay" onClick={cancelEditingReason}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
