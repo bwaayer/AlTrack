@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import MealEntry from './components/MealEntry';
-import HandConditionEntry from './components/HandConditionEntry';
-import History from './components/History';
-import Statistics from './components/Statistics';
+import MealEntry from './components/MealEntry.tsx';
+import HandConditionEntry from './components/HandConditionEntry.tsx';
+import History from './components/History.tsx';
+import Statistics from './components/Statistics.tsx';
 import './App.css';
 
 const App: React.FC = () => {
