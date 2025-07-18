@@ -346,16 +346,7 @@ app.post('/api/hand-conditions', async (req, res) => {
   }
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
 
 // Unmark meal as suspicious
 app.delete('/api/meals/:id/suspicious', async (req, res) => {
@@ -454,6 +445,18 @@ app.put('/api/meals/:id/suspicious', async (req, res) => {
     });
   }
 });
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`AlTrack API server running on port ${port}`);
