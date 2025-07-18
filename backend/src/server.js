@@ -13,7 +13,9 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true })); 
+
 
 app.use(cors({
   origin: ['http://localhost:3000', 'http://192.168.30.96:3000'],
@@ -118,22 +120,42 @@ app.post('/api/meals', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const { date, mealType, items, notes } = req.body;
+    const { date, meal_type, items, notes } = req.body;
+
+    // Add debugging to see what we're receiving
+    console.log('Received request body:', JSON.stringify(req.body, null, 2));
+    console.log('Extracted values:', { date, meal_type, items: items?.length, notes });
+
+    // Validate required fields
+    if (!date) {
+      throw new Error('Date is required');
+    }
+    if (!meal_type) {
+      throw new Error('Meal type is required');
+    }
+    if (!items || items.length === 0) {
+      throw new Error('At least one food item is required');
+    }
 
     // Insert meal
     const mealResult = await client.query(
       'INSERT INTO meals (date, meal_type, notes) VALUES ($1, $2, $3) RETURNING id',
-      [date, mealType, notes || null]
+      [date, meal_type, notes || null]
     );
 
     const mealId = mealResult.rows[0].id;
+    console.log('Meal inserted with ID:', mealId);
 
     // Insert food items and meal items
     for (const item of items) {
+      if (!item.name || !item.name.trim()) {
+        continue; // Skip empty items
+      }
+
       // Insert or get food item
       const foodResult = await client.query(
         'INSERT INTO food_items (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id',
-        [item.name]
+        [item.name.trim()]
       );
 
       const foodItemId = foodResult.rows[0].id;
@@ -146,15 +168,21 @@ app.post('/api/meals', async (req, res) => {
     }
 
     await client.query('COMMIT');
+    console.log('Meal added successfully');
     res.json({ id: mealId, message: 'Meal added successfully' });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error adding meal:', error);
-    res.status(500).json({ error: 'Failed to add meal' });
+    console.error('Error adding meal:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      error: 'Failed to add meal', 
+      details: error.message 
+    });
   } finally {
     client.release();
   }
 });
+
 
 // Mark meal as suspicious
 app.post('/api/meals/:id/suspicious', async (req, res) => {
