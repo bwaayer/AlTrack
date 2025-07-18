@@ -212,12 +212,13 @@ app.post('/api/meals/:id/suspicious', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Insert or update suspicious meal record (without created_at)
+    // Insert or update suspicious meal record (use marked_at instead of created_at)
     await client.query(
       `INSERT INTO suspicious_meals (meal_id, reason) 
        VALUES ($1, $2) 
        ON CONFLICT (meal_id) DO UPDATE SET 
-         reason = EXCLUDED.reason`,
+         reason = EXCLUDED.reason,
+         marked_at = CURRENT_TIMESTAMP`,
       [mealId, reason || 'Marked as suspicious']
     );
 
@@ -249,6 +250,8 @@ app.post('/api/meals/:id/suspicious', async (req, res) => {
     client.release();
   }
 });
+
+
 
 
 
