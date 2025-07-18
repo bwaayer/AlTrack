@@ -1,6 +1,6 @@
 // frontend/src/components/History.tsx
 import React, { useState, useEffect } from 'react';
-import { foodApi } from '../api';
+import { foodApi } from '../api.ts';
 import { Meal, HandCondition } from '../types';
 import { format } from 'date-fns';
 

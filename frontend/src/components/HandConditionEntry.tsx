@@ -1,6 +1,6 @@
 // frontend/src/components/HandConditionEntry.tsx
 import React, { useState } from 'react';
-import { foodApi } from '../api';
+import { foodApi } from '../api.ts';
 
 const HandConditionEntry: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);

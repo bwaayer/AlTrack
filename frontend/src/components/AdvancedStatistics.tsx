@@ -1,6 +1,6 @@
 // frontend/src/components/AdvancedStatistics.tsx
 import React, { useState, useEffect } from 'react';
-import { foodApi } from '../api';
+import { foodApi } from '../api.ts';
 import { Statistics as StatsType } from '../types';
 
 const AdvancedStatistics: React.FC = () => {

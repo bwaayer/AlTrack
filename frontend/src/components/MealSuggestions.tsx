@@ -1,6 +1,6 @@
 // frontend/src/components/FoodSuggestions.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { foodApi } from '../api';
+import { foodApi } from '../api.ts';
 import { FoodItem } from '../types';
 
 interface FoodSuggestionsProps {
