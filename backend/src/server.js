@@ -486,17 +486,17 @@ app.get('/api/statistics', async (req, res) => {
       ORDER BY date ASC
     `);
 
-    // Meal type analysis
+    // Meal type analysis - FIXED ROUND FUNCTION
     const mealTypeAnalysis = await pool.query(`
       SELECT 
         m.meal_type,
         COUNT(m.id) as total_meals,
         COUNT(sm.id) as suspicious_meals,
-        ROUND(
+        CAST(
           CASE 
             WHEN COUNT(m.id) > 0 THEN (COUNT(sm.id)::float / COUNT(m.id)::float) * 100
             ELSE 0 
-          END, 2
+          END AS DECIMAL(5,2)
         ) as suspicious_percentage
       FROM meals m
       LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
