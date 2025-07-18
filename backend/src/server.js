@@ -218,40 +218,92 @@ app.get('/api/hand-conditions', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    let query = 'SELECT * FROM hand_conditions';
-    const params = [];
+    let query = `
+      SELECT 
+        id,
+        date,
+        time_of_day,
+        condition_rating,
+        notes,
+        created_at,
+        (date || 'T' || time_of_day) as datetime
+      FROM hand_conditions
+    `;
+    let params = [];
 
     if (startDate && endDate) {
-      query += ' WHERE date >= $1 AND date <= $2';
-      params.push(startDate, endDate);
+      query += ' WHERE date BETWEEN $1 AND $2';
+      params = [startDate, endDate];
+    } else if (startDate) {
+      query += ' WHERE date >= $1';
+      params = [startDate];
+    } else if (endDate) {
+      query += ' WHERE date <= $1';
+      params = [endDate];
     }
 
-    query += ' ORDER BY date DESC, time DESC';
+    query += ' ORDER BY date DESC, time_of_day DESC';
+
+    console.log('Getting hand conditions:', { startDate, endDate });
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+
+    // Transform the results to match frontend expectations
+    const transformedResults = result.rows.map(row => ({
+      id: row.id,
+      datetime: row.datetime,
+      condition_rating: row.condition_rating,
+      notes: row.notes,
+      created_at: row.created_at
+    }));
+
+    res.json(transformedResults);
   } catch (error) {
-    console.error('Error fetching hand conditions:', error);
-    res.status(500).json({ error: 'Failed to fetch hand conditions' });
+    console.error('Error getting hand conditions:', error);
+    res.status(500).json({ error: 'Failed to get hand conditions' });
   }
 });
+
 
 // Add hand condition
 app.post('/api/hand-conditions', async (req, res) => {
   try {
-    const { date, time, rating, notes } = req.body;
+    const { datetime, condition_rating, notes } = req.body;
+
+    console.log('Adding hand condition:', { datetime, condition_rating, notes });
+
+    // Validate required fields
+    if (!datetime) {
+      throw new Error('Datetime is required');
+    }
+    if (!condition_rating || condition_rating < 1 || condition_rating > 10) {
+      throw new Error('Condition rating must be between 1 and 10');
+    }
+
+    // Split datetime into date and time components
+    const datetimeObj = new Date(datetime);
+    const date = datetimeObj.toISOString().split('T')[0]; // YYYY-MM-DD
+    const time = datetimeObj.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    console.log('Split datetime:', { date, time });
 
     const result = await pool.query(
-      'INSERT INTO hand_conditions (date, time, rating, notes) VALUES ($1, $2, $3, $4) RETURNING id',
-      [date, time, rating, notes || null]
+      'INSERT INTO hand_conditions (date, time_of_day, condition_rating, notes) VALUES ($1, $2, $3, $4) RETURNING id',
+      [date, time, condition_rating, notes || null]
     );
 
+    console.log('Hand condition added with ID:', result.rows[0].id);
     res.json({ id: result.rows[0].id, message: 'Hand condition recorded successfully' });
   } catch (error) {
-    console.error('Error adding hand condition:', error);
-    res.status(500).json({ error: 'Failed to record hand condition' });
+    console.error('Error adding hand condition:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      error: 'Failed to record hand condition', 
+      details: error.message 
+    });
   }
 });
+
 
 // Get statistics
 app.get('/api/statistics', async (req, res) => {

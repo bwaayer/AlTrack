@@ -23,11 +23,12 @@ export interface Meal {
 
 export interface HandCondition {
   id?: number;
-  date: string;
-  time: string;
-  rating: number;
+  datetime: string; // This will be constructed from date + time_of_day
+  condition_rating: number;
   notes?: string;
+  created_at?: string;
 }
+
 
 export interface Statistics {
   totalMeals: number;
