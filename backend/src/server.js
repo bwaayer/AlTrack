@@ -486,7 +486,7 @@ app.get('/api/statistics', async (req, res) => {
       ORDER BY date ASC
     `);
 
-    // Meal type analysis - FIXED ROUND FUNCTION
+    // Meal type analysis
     const mealTypeAnalysis = await pool.query(`
       SELECT 
         m.meal_type,
@@ -580,18 +580,18 @@ app.get('/api/statistics', async (req, res) => {
       WHERE first_good_day IS NOT NULL
     `);
 
-    // Monthly summary
+    // Monthly summary - FIXED AMBIGUOUS COLUMN REFERENCE
     const monthlySummary = await pool.query(`
       SELECT 
-        DATE_TRUNC('month', date) as month,
+        DATE_TRUNC('month', m.date) as month,
         COUNT(DISTINCT m.id) as total_meals,
         COUNT(DISTINCT sm.id) as suspicious_meals,
         AVG(hc.condition_rating) as avg_condition
       FROM meals m
       LEFT JOIN suspicious_meals sm ON m.id = sm.meal_id
-      LEFT JOIN hand_conditions hc ON DATE_TRUNC('day', hc.date) = m.date
+      LEFT JOIN hand_conditions hc ON hc.date = m.date
       WHERE m.date >= CURRENT_DATE - INTERVAL '6 months'
-      GROUP BY DATE_TRUNC('month', date)
+      GROUP BY DATE_TRUNC('month', m.date)
       ORDER BY month DESC
     `);
 
