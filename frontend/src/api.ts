@@ -10,6 +10,24 @@ const api = axios.create({
   },
 });
 
+// Add request interceptor for debugging
+api.interceptors.request.use(request => {
+  console.log('API Request:', request.method?.toUpperCase(), request.url);
+  return request;
+});
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  response => {
+    console.log('API Response:', response.status, response.config.url);
+    return response;
+  },
+  error => {
+    console.error('API Error:', error.message, error.config?.url);
+    return Promise.reject(error);
+  }
+);
+
 export const foodApi = {
   // Food suggestions
   getFoodSuggestions: async (query?: string): Promise<FoodItem[]> => {

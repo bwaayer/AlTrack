@@ -15,6 +15,12 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://192.168.30.96:3000'],
+  credentials: true
+}));
+
+
 // Test database connection
 pool.connect((err, client, release) => {
   if (err) {
